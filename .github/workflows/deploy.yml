@@ -90,6 +90,7 @@ jobs:
             sudo usermod -a -G docker ec2-user
             aws --version
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 651706758333.dkr.ecr.us-east-1.amazonaws.com  
-            docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
+            docker pull 651706758333.dkr.ecr.us-east-1.amazonaws.com/django-on-docker:7d21911f773256e3fbb1d67852db865d83ba5888
+            docker run -d -p 80:8000 651706758333.dkr.ecr.us-east-1.amazonaws.com/django-on-docker:7d21911f773256e3fbb1d67852db865d83ba5888
 
 
