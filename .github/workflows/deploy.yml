@@ -89,6 +89,9 @@ jobs:
           env: PRIVATE_SSH_KEY,REGISTRY,REPOSITORY,IMAGE_TAG,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
           script: |
             sudo yum update -y
+            sudo amazon-linux-extras install -y docker
+            sudo service docker start
+            sudo usermod -a -G docker ec2-user
             sudo aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY       
             docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
             sudo docker run -d --name django-on-docker -p 80:8000 $REGISTRY/$REPOSITORY:$IMAGE_TAG
