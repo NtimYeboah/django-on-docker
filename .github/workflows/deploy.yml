@@ -69,10 +69,6 @@ jobs:
             --query 'Stacks[0].Outputs[?OutputKey==`InstancePublicIp`].OutputValue' \
             --output text)
           echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_OUTPUT
-                
-      - name: Login to AWS ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy docker image to EC2
         env:

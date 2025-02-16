@@ -42,7 +42,7 @@ class DisoAiSaasIacStack(Stack):
 
         # Add the EC2InstanceProfileForImageBuilderECRContainerBuilds managed policy
         instance_role.add_managed_policy(
-            iam.ManagedPolicy.from_aws_managed_policy_name('EC2InstanceProfileForImageBuilderECRContainerBuilds')
+            iam.ManagedPolicy.from_aws_managed_policy_name('AmazonEC2ContainerRegistryPowerUser')
         )
         
         # User data script to install AWS CLI v2
