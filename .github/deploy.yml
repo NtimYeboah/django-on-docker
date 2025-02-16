@@ -1,0 +1,94 @@
+name: Deploy infrastructure to AWS
+on:
+  workflow_run:
+    workflows: ['build_image']
+    types: [completed]
+
+env:
+    AWS_REGION: ${{ secrets.AWS_REGION }}
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    PRIVATE_SSH_KEY: ${{ secrets.PRIVATE_SSH_KEY }}
+    PUBLIC_SSH_KEY: ${{ secrets.PUBLIC_SSH_KEY }}
+    AWS_ECR_PRODUCTION_REPOSITORY: ${{ secrets.AWS_ECR_PRODUCTION_REPOSITORY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iac
+    strategy:
+      matrix:
+        python-version:
+          - '3.11'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+      
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install -r requirements.txt
+
+      - name: Install dev dependencies
+        run: |
+          python3 -m pip install -r requirements-dev.txt
+
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy infrastructure to AWS
+        run: |
+          cdk deploy --require-approval=never
+
+      - name: Get Instance IP
+        id: get-instance-ip
+        run: |
+          # Get the IP from CloudFormation outputs and set it as an environment variable
+          INSTANCE_IP=$(aws cloudformation describe-stacks \
+            --stack-name DisoAiSaasIacStack \
+            --query 'Stacks[0].Outputs[?OutputKey==`InstancePublicIp`].OutputValue' \
+            --output text)
+          echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_OUTPUT
+                
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Deploy docker image to EC2
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ env.AWS_ECR_PRODUCTION_REPOSITORY}}
+          IMAGE_TAG: ${{ github.sha }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          PRIVATE_SSH_KEY: ${{ env.PRIVATE_SSH_KEY }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ steps.get-instance-ip.outputs.INSTANCE_IP }}
+          username: ec2-user
+          key: ${{ env.PRIVATE_SSH_KEY }}
+          env: PRIVATE_SSH_KEY,REGISTRY,REPOSITORY,IMAGE_TAG,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          script: |
+            sudo yum update -y
+            sudo aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY       
+            docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
+            sudo docker run -d --name django-on-docker -p 80:8000 $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
