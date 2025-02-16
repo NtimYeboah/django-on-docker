@@ -89,7 +89,7 @@ jobs:
             sudo service docker start
             sudo usermod -a -G docker ec2-user
             aws --version
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY  
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $REGISTRY  
             docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
 
