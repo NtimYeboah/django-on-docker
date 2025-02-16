@@ -92,10 +92,6 @@ jobs:
             sudo amazon-linux-extras install -y docker
             sudo service docker start
             sudo usermod -a -G docker ec2-user
-            sudo yum remove awscli
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
             aws --version
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY       
             docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
