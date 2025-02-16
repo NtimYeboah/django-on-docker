@@ -1,5 +1,6 @@
 name: Deploy infrastructure to AWS
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ['build_image']
     types: [completed]
