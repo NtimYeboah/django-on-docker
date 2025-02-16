@@ -26,6 +26,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           WEB: django-on-docker-web
         run: |
+          echo $REGISTRY/$REPOSITORY:$IMAGE_TAG
           docker compose build
           docker image ls
           docker tag $WEB:latest $REGISTRY/$REPOSITORY:$IMAGE_TAG
