@@ -44,6 +44,17 @@ class DisoAiSaasIacStack(Stack):
         instance_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name('EC2InstanceProfileForImageBuilderECRContainerBuilds')
         )
+        
+        # User data script to install AWS CLI v2
+        user_data = ec2.UserData.for_linux()
+        user_data.add_commands('''
+            sudo yum remove -y awscli
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            sudo yum install -y unzip
+            unzip awscliv2.zip
+            ./aws/install
+            rm -rf aws awscliv2.zip
+        ''')
 
         # Instance
         instance = ec2.Instance(
@@ -55,6 +66,7 @@ class DisoAiSaasIacStack(Stack):
             security_group=security_group,
             key_name=cfn_key_pair.key_name,
             role=instance_role,
+            user_data=user_data
         )
 
         # Output the public IP address
